@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Лічильник байтів тексту</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <style>
+    body { background-color: #f8f9fa; }
+    .container-narrow { max-width: 720px; }
+    .mono { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <main class="container container-narrow py-4">
+    <h1 class="h4 mb-3 text-center">Лічильник байтів</h1>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="textInput" class="form-label">Текст (українською)</label>
+          <textarea id="textInput" class="form-control" rows="6" placeholder="Введіть текст українською..."></textarea>
+        </div>
+
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-md-6">
+            <label for="encodingSelect" class="form-label">Кодування</label>
+            <select id="encodingSelect" class="form-select">
+              <option value="windows-1251">Windows-1251</option>
+              <option value="utf-8" selected>UTF-8</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-6">
+            <label for="byteOutput" class="form-label">Довжина у байтах</label>
+            <div class="input-group">
+              <input id="byteOutput" class="form-control mono" type="text" value="0" readonly aria-label="Довжина у байтах">
+              <span class="input-group-text">байт</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-muted small mt-3 mb-0">
+      Обчислення оновлюється автоматично під час введення тексту.
+    </p>
+  </main>
+
+  <script>
+    (function () {
+      const textInput = document.getElementById('textInput');
+      const encodingSelect = document.getElementById('encodingSelect');
+      const byteOutput = document.getElementById('byteOutput');
+
+      // Переводимо всі переведення рядків до формату "\n\r" (як запитано)
+      function normalizeNewlinesToNLCR(originalText) {
+        // Спершу уніфікуємо всі типи закінчень рядка до \n
+        const unixUnified = originalText
+          .replace(/\r\n/g, '\n') // Windows CRLF -> LF
+          .replace(/\r/g, '\n');   // Самотній CR -> LF
+        // Тепер розширюємо LF до NLCR у потрібному порядку \n\r
+        return unixUnified.replace(/\n/g, '\n\r');
+      }
+
+      function getByteLength(text, encoding) {
+        const textWithNLCR = normalizeNewlinesToNLCR(text);
+        if (encoding === 'utf-8') {
+          // Точний підрахунок байтів у UTF-8
+          return new TextEncoder().encode(textWithNLCR).length;
+        }
+        if (encoding === 'windows-1251') {
+          // Windows-1251 — однобайтне кодування. Непредставні символи замінюються на '?', що теж 1 байт.
+          // Тому довжина у байтах дорівнює кількості Юнікод-символів (code points).
+          // Використовуємо ітерацію по code points, щоб правильно обробляти сурогатні пари.
+          let count = 0;
+          for (const _ch of textWithNLCR) { count += 1; }
+          return count;
+        }
+        return 0;
+      }
+
+      function update() {
+        const text = textInput.value || '';
+        const enc = encodingSelect.value;
+        const len = getByteLength(text, enc);
+        byteOutput.value = String(len);
+      }
+
+      textInput.addEventListener('input', update);
+      encodingSelect.addEventListener('change', update);
+      update();
+    })();
+  </script>
+</body>
+</html>
+
+
