@@ -52,28 +52,28 @@
       const encodingSelect = document.getElementById('encodingSelect');
       const byteOutput = document.getElementById('byteOutput');
 
-      // Переводимо всі переведення рядків до формату "\n\r" (як запитано)
-      function normalizeNewlinesToNLCR(originalText) {
+      // Переводимо всі переведення рядків до стандартного Windows CRLF ("\r\n")
+      function normalizeNewlinesToCRLF(originalText) {
         // Спершу уніфікуємо всі типи закінчень рядка до \n
         const unixUnified = originalText
-          .replace(/\r\n/g, '\n') // Windows CRLF -> LF
-          .replace(/\r/g, '\n');   // Самотній CR -> LF
-        // Тепер розширюємо LF до NLCR у потрібному порядку \n\r
-        return unixUnified.replace(/\n/g, '\n\r');
+          .replace(/\r\n/g, '\n') // CRLF -> LF
+          .replace(/\r/g, '\n');   // CR -> LF
+        // Потім LF -> CRLF
+        return unixUnified.replace(/\n/g, '\r\n');
       }
 
       function getByteLength(text, encoding) {
-        const textWithNLCR = normalizeNewlinesToNLCR(text);
+        const textWithCRLF = normalizeNewlinesToCRLF(text);
         if (encoding === 'utf-8') {
           // Точний підрахунок байтів у UTF-8
-          return new TextEncoder().encode(textWithNLCR).length;
+          return new TextEncoder().encode(textWithCRLF).length;
         }
         if (encoding === 'windows-1251') {
           // Windows-1251 — однобайтне кодування. Непредставні символи замінюються на '?', що теж 1 байт.
           // Тому довжина у байтах дорівнює кількості Юнікод-символів (code points).
           // Використовуємо ітерацію по code points, щоб правильно обробляти сурогатні пари.
           let count = 0;
-          for (const _ch of textWithNLCR) { count += 1; }
+          for (const _ch of textWithCRLF) { count += 1; }
           return count;
         }
         return 0;
